@@ -168,6 +168,12 @@ if (interactive()) {
   bs_theme_preview(theme)
 }
 
+# Lower-level bs_add_*() functions allow you to work more
+# directly with the underlying Sass code
+theme <- theme \%>\%
+  bs_add_variables("my-class-color" = "red") \%>\%
+  bs_add_rules(".my-class { color: $my-class-color }")
+
 }
 \references{
 \url{https://getbootstrap.com/docs/4.4/getting-started/theming/}

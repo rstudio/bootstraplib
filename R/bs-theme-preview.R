@@ -52,7 +52,7 @@ opts_metadata <- function() {
   )
 }
 
-bs_themer_ui <- function(theme = bs_global_get()) {
+bs_themer_ui <- function(theme = bs_theme()) {
 
   computed_defaults <- bs_get_variables(theme, unlist(unname(lapply(opts_metadata(), names))))
 
@@ -231,7 +231,7 @@ bs_themer_ui <- function(theme = bs_global_get()) {
 #' )
 #'
 #' if (interactive()) {
-#'   run_with_themer(shinyApp(ui, function(input, output) {}, theme = theme))
+#'   run_with_themer(shinyApp(ui, function(input, output) {}, bs_theme = theme))
 #' }
 #'
 #' @export
@@ -241,7 +241,7 @@ run_with_themer <- function(appDir = getwd(), ...) {
   obj[["serverFuncSource"]] <- function() {
     origServerFunc <- origServerFuncSource()
     function(input, output, session, ...) {
-      bs_themer(theme = shiny::getShinyOption("bs_theme"))
+      bs_themer()
       if (!"session" %in% names(formals(origServerFunc))) {
         origServerFunc(input, output, ...)
       } else {
@@ -254,20 +254,23 @@ run_with_themer <- function(appDir = getwd(), ...) {
 
 #' @rdname run_with_themer
 #' @export
-bs_themer <- function(theme = bs_theme()) {
+bs_themer <- function() {
   session <- shiny::getDefaultReactiveDomain()
-
-  if (!is.null(theme) && "3" %in% theme_version(theme)) {
-    stop("Interactive theming for Bootstrap 3 Sass isn't yet supported")
-  }
-
   if (is.null(session)) {
     stop(call. = FALSE, "bootstraplib::bs_themer() must be called from within a ",
-      "Shiny server function")
+         "Shiny server function")
   }
   if (!identical("ok", session$ns("ok"))) {
     stop(call. = FALSE, "bootstraplib::bs_themer() must be called from within a ",
-      "top-level Shiny server function, not a Shiny module server function")
+         "top-level Shiny server function, not a Shiny module server function")
+  }
+  theme <- shiny::getShinyOption("bs_theme")
+  if (is.null(theme)) {
+    stop(call. = FALSE, "bootstraplib::bs_themer() requires that shinyOptions(bs_theme = ...)",
+         "be set to a bootstraplib::bs_theme() (either explictly or via shinyApp()'s theme parameter).")
+  }
+  if (!is.null(theme) && "3" %in% theme_version(theme)) {
+    stop("Interactive theming for Bootstrap 3 Sass isn't yet supported")
   }
 
   if (isTRUE(session$userData[["bs_themer_init"]])) {
@@ -306,7 +309,7 @@ bs_themer <- function(theme = bs_theme()) {
     # Filter out vals that the user hasn't changed
     changed_vals <- as.list(diff_css_values(vals, default_values))
 
-    message("---")
+    message("--------------------")
 
     # Change variables names to their 'high-level' equivalents
     # Note that if _either_ fg/bg has changed, bs_base_colors()
@@ -317,7 +320,9 @@ bs_themer <- function(theme = bs_theme()) {
       changed_vals[["bg"]] <- changed_vals[["bg"]] %||% vals[["white"]]
     }
 
-    theme <- echo_and_eval_theme_code(theme, changed_vals)
+    code <- rlang::expr(bs_theme_update(theme, !!!changed_vals))
+    print(code)
+    theme <- rlang::eval_tidy(code)
 
     # Degrade sass() compilation errors to warnings so they don't crash the app
     # Errors can happen if the users enters values that lead to unexpected Sass
@@ -373,6 +378,8 @@ bs_get_variables <- function(theme = bs_theme(), varnames) {
   if (length(varnames) == 0) {
     return(stats::setNames(character(0), character(0)))
   }
+
+  theme <- assert_bs_theme(theme)
 
   # Support both `bs_get_variables("$foo")` and `bs_get_variables("foo")`
   # (note that `sass::sass("$$foo:1;")` is illegal; so this seems safe)
@@ -431,34 +438,6 @@ bs_get_variables <- function(theme = bs_theme(), varnames) {
 
   # Return as a named character vector
   stats::setNames(values, varnames)
-}
-
-
-
-echo_and_eval_theme_code <- function(theme, vals) {
-  funcs <- list(
-    bs_base_colors = bs_base_colors,
-    bs_accent_colors = bs_accent_colors,
-    bs_fonts = bs_fonts
-  )
-  func_args <- lapply(funcs, function(f) {
-    fmls <- names(formals(f))
-    vals[names(vals) %in% fmls]
-  })
-  func_calls <- dropNulls(Map(
-    names(funcs), func_args,
-    f = function(fn, args) {
-      if (length(args)) rlang::expr(`!!`(rlang::sym(fn))(!!!args))
-    }
-  ))
-  code <- Reduce(function(x, y) { rlang::expr(!!x %>% !!y)  }, func_calls, init = quote(theme))
-  used_args <- unlist(lapply(func_args, function(args) names(args)))
-  vals <- vals[!names(vals) %in% used_args]
-  if (length(vals)) {
-    code <- rlang::expr(`!!`(code) %>% bs_add_variables(!!!vals))
-  }
-  print(code)
-  rlang::eval_tidy(code)
 }
 
 

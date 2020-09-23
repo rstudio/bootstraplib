@@ -7,7 +7,7 @@
 \usage{
 run_with_themer(appDir = getwd(), ...)
 
-bs_themer(theme = bs_theme())
+bs_themer()
 }
 \arguments{
 \item{appDir}{The application to run. This can be a file or directory path,
@@ -78,7 +78,7 @@ ui <- fluidPage(
 )
 
 if (interactive()) {
-  run_with_themer(shinyApp(ui, function(input, output) {}, theme = theme))
+  run_with_themer(shinyApp(ui, function(input, output) {}, bs_theme = theme))
 }
 
 }

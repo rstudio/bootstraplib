@@ -18,8 +18,8 @@ bs_theme_preview(
 
 \item{with_themer}{whether or not to run the app with \code{\link[=run_with_themer]{run_with_themer()}}.}
 
-\item{pre_run}{a function to call prior to running the app. The default function
-enables thematic's plot auto-theming capabilities.}
+\item{pre_run}{a function (with no arguments) to call prior to running the app.
+The default function enables thematic's plot auto-theming capabilities.}
 }
 \description{
 Launches an example shiny app via \code{run_with_themer()} and \code{bs_dependencies()}.

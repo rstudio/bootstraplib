@@ -101,6 +101,12 @@
 #'   bs_theme_preview(theme)
 #' }
 #'
+#' # Lower-level bs_add_*() functions allow you to work more
+#' # directly with the underlying Sass code
+#' theme <- theme %>%
+#'   bs_add_variables("my-class-color" = "red") %>%
+#'   bs_add_rules(".my-class { color: $my-class-color }")
+#'
 #' @export
 bs_theme <- function(version = version_default(), bootswatch = NULL, ...,
                      bg = NULL, fg = NULL, primary = NULL, secondary = NULL,
@@ -135,7 +141,7 @@ bs_theme <- function(version = version_default(), bootswatch = NULL, ...,
 #' @rdname bs_theme
 #' @export
 bs_theme_update <- function(theme = bs_theme(), ..., bg = NULL, fg = NULL,
-                            primary = NULL,  secondary = NULL, success = NULL,
+                            primary = NULL, secondary = NULL, success = NULL,
                             info = NULL, warning = NULL, danger = NULL,
                             base_font = NULL, code_font = NULL, heading_font = NULL) {
   theme <- assert_bs_theme(theme)
